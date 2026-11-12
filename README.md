@@ -28,3 +28,8 @@ The bot may create or update a local SQLite database. Back it up before changing
 ## Deployment notes
 
 Use a dedicated bot account, least-privilege credentials, provider rate limits, secure logs that omit tokens and private conversations, and a process manager appropriate to your host. This project is not a substitute for provider terms or content-safety controls.
+
+
+## Reverse-image privacy
+
+The reverse-image command temporarily uploads the selected image to an external public file host and then sends its URL to SerpApi. Do not use it for private, confidential, or biometric images unless you have permission and accept the third-party processing and retention terms. Ordinary web, image, video, and news search commands do not need this image upload.
