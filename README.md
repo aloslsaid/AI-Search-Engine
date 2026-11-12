@@ -1,30 +1,68 @@
-# INFINITRIX Search
+# INFINITRIX SEARCH
 
-INFINITRIX is a Python Telegram bot that combines conversational AI with web/media search integrations. The codebase includes bot and handler modules, a search module, an AI client, configuration and database modules, Windows helper scripts, and a `requirements.txt` manifest.
+INFINITRIX SEARCH is an asynchronous Telegram assistant built with Python, aiogram and aiohttp. It combines OpenRouter-powered chat with optional SerpApi web, image, video, news and reverse-image search.
 
-## Features described by the project
+## Features
 
-- Telegram conversations and per-user history stored with SQLite.
-- Search through the configured SerpApi integration.
-- AI responses through the configured OpenRouter model.
-- Bot commands for search and conversation management, as implemented by the handlers.
+- Telegram bot commands and conversational history.
+- OpenRouter chat with configurable model and prompt.
+- Optional web, image, video, news and reverse-image search.
+- SQLite-backed conversation and usage data.
+- Per-user anti-spam controls, usage limits and bounded conversation history.
+- Configurable image upload host for reverse-image search.
 
-Provider availability, quotas, and content policies apply. Search results should be treated as untrusted external content.
+## Requirements
+
+- Python 3.10+
+- Telegram bot token
+- OpenRouter API key
+- Optional SerpApi key for search commands
 
 ## Setup
 
-1. Install Python and create a virtual environment.
-2. Install dependencies: `python -m pip install -r requirements.txt`.
-3. Review `config.py` and the bot's configuration flow to identify required settings.
-4. Provide Telegram and provider credentials only through environment variables or an untracked local `.env` file. Never paste secrets into source code or commit them.
-5. Inspect `bot.py` for the intended entry point, then run the documented command from the repository root. The root file list does not include an `.env.example`, so required variable names should be verified in the configuration source before use.
+From the repository root:
 
-The `run.bat` and `setup.bat` files are Windows-specific helpers; review them before execution. Do not run setup scripts with elevated privileges unless you understand every command.
+```bash
+python -m venv .venv
+# Windows PowerShell:
+.venv\Scripts\Activate.ps1
+# macOS/Linux:
+source .venv/bin/activate
 
-## Data and testing
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
 
-The bot may create or update a local SQLite database. Back it up before changing database code and avoid committing user conversations. No test files were visible at the repository root, so a working test command is not currently documented. Add tests for configuration validation, search-provider failures, message limits, and database isolation before production use.
+Copy `.env.example` to `.env` and fill in `TELEGRAM_BOT_TOKEN`, `OPENROUTER_API_KEY`, and your numeric Telegram `OWNER_ID`. Keep the real `.env` file private and untracked.
 
-## Deployment notes
+```bash
+# Windows
+Copy-Item .env.example .env
+# macOS/Linux
+cp .env.example .env
 
-Use a dedicated bot account, least-privilege credentials, provider rate limits, secure logs that omit tokens and private conversations, and a process manager appropriate to your host. This project is not a substitute for provider terms or content-safety controls.
+python bot.py
+```
+
+Search features remain disabled until `SERPAPI_API_KEY` is configured. The bot can still provide AI chat without it.
+
+## Configuration
+
+See `.env.example` for model, token, timeout, history, anti-spam, usage-limit and search settings. Invalid numeric settings are rejected at startup. The SQLite database and rotating logs are created under the configured local paths.
+
+## Security and privacy
+
+- Use a dedicated Telegram bot and keep provider credentials in environment variables.
+- Never commit `.env`, SQLite databases, logs or user conversation data.
+- Search results and uploaded image URLs are external, untrusted content.
+- Reverse-image search uploads the selected image to a temporary third-party image host before querying SerpApi. Do not use this feature with confidential or sensitive images.
+- Review provider quotas, terms, retention and privacy policies before enabling public use.
+- Run with least privilege and monitor API costs and rate limits.
+
+## Tests
+
+No complete automated test suite is currently declared. Add tests for configuration validation, database isolation, anti-spam limits, provider failures, and safe message formatting before production deployment.
+
+## License
+
+No license is declared. All rights reserved unless the repository owner adds an explicit license.
