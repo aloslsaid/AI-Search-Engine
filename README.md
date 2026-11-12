@@ -16,8 +16,8 @@ Provider availability, quotas, and content policies apply. Search results should
 1. Install Python and create a virtual environment.
 2. Install dependencies: `python -m pip install -r requirements.txt`.
 3. Review `config.py` and the bot's configuration flow to identify required settings.
-4. Provide Telegram and provider credentials only through environment variables or an untracked local `.env` file. Never paste secrets into source code or commit them.
-5. Inspect `bot.py` for the intended entry point, then run the documented command from the repository root. The root file list does not include an `.env.example`, so required variable names should be verified in the configuration source before use.
+4. Copy `.env.example` to `.env` and set `TELEGRAM_BOT_TOKEN`, `OPENROUTER_API_KEY`, and your numeric `OWNER_ID`. `SERPAPI_API_KEY` is optional; without it, search commands are disabled.
+5. Keep `.env` private and untracked. Start the bot from the repository root with `python bot.py`.
 
 The `run.bat` and `setup.bat` files are Windows-specific helpers; review them before execution. Do not run setup scripts with elevated privileges unless you understand every command.
 
