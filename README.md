@@ -1,30 +1,325 @@
-# INFINITRIX Search
+# INFINITRIX SEARCH 🤖🔎
 
-INFINITRIX is a Python Telegram bot that combines conversational AI with web/media search integrations. The codebase includes bot and handler modules, a search module, an AI client, configuration and database modules, Windows helper scripts, and a `requirements.txt` manifest.
+بوت تيليجرام ذكي مبني بـ **Python + aiogram 3** يعمل بنموذج
+`cognitivecomputations/dolphin-mistral-24b-venice-edition` عبر **OpenRouter**،
+مع بحث مباشر في الإنترنت عبر **SerpApi** (ويب، صور، فيديو، أخبار، وبحث عكسي بالصورة)،
+وذاكرة منفصلة لكل مستخدم في **SQLite**، وإمكانية تغيير **System Prompt** مباشرة من تيليجرام (للمالك فقط).
 
-## Features described by the project
+---
 
-- Telegram conversations and per-user history stored with SQLite.
-- Search through the configured SerpApi integration.
-- AI responses through the configured OpenRouter model.
-- Bot commands for search and conversation management, as implemented by the handlers.
+## المحتويات
 
-Provider availability, quotas, and content policies apply. Search results should be treated as untrusted external content.
+1. [المميزات](#المميزات)
+2. [المتطلبات](#المتطلبات)
+3. [الحصول على المفاتيح](#الحصول-على-المفاتيح)
+4. [التثبيت على Windows مع VS Code](#التثبيت-على-windows-مع-vs-code)
+5. [إعداد ملف `.env`](#إعداد-ملف-env)
+6. [تشغيل البوت](#تشغيل-البوت)
+7. [الأوامر](#الأوامر)
+8. [إدارة الـ System Prompt](#إدارة-الـ-system-prompt)
+9. [حدود الاستخدام وحماية السبام](#حدود-الاستخدام-وحماية-السبام)
+10. [البحث العكسي بالصورة](#البحث-العكسي-بالصورة)
+11. [هيكل المشروع](#هيكل-المشروع)
+12. [الاختبارات](#الاختبارات)
+13. [استكشاف الأخطاء](#استكشاف-الأخطاء)
+14. [الأمان](#الأمان)
+15. [التشغيل على Linux / خادم](#التشغيل-على-linux--خادم)
 
-## Setup
+---
 
-1. Install Python and create a virtual environment.
-2. Install dependencies: `python -m pip install -r requirements.txt`.
-3. Review `config.py` and the bot's configuration flow to identify required settings.
-4. Provide Telegram and provider credentials only through environment variables or an untracked local `.env` file. Never paste secrets into source code or commit them.
-5. Inspect `bot.py` for the intended entry point, then run the documented command from the repository root. The root file list does not include an `.env.example`, so required variable names should be verified in the configuration source before use.
+## المميزات
 
-The `run.bat` and `setup.bat` files are Windows-specific helpers; review them before execution. Do not run setup scripts with elevated privileges unless you understand every command.
+- 💬 محادثة ذكية مع **ذاكرة منفصلة لكل مستخدم** (SQLite) تبقى بعد إعادة التشغيل.
+- 🔎 بحث عبر SerpApi: **ويب** (`google`)، **صور** (`google_images`)، **فيديو** (`google_videos`)،
+  **أخبار** (`google_news`)، **بحث عكسي بالصورة** (`google_reverse_image` مع بديل `google_lens`).
+- 🧠 `/ask` و `/autosearch`: يبحث البوت في الإنترنت ثم يعطي النموذج النتائج ليجيب بمعلومات حديثة مع الروابط.
+- 👑 `/setprompt` و `/showprompt` و `/resetprompt` لتغيير البرومبت من تيليجرام — **للمالك فقط** (`OWNER_ID`).
+- 💾 البرومبت المخصص يُحفظ في SQLite **بشكل دائم** ويُستخدم في **كل طلب** إلى OpenRouter.
+- 🎯 البرومبت الافتراضي: مباشر، قدير، إبداعي، ويقلّل الرفض غير الضروري (يمكنك تغييره بالكامل).
+- 📊 حدود يومية قابلة للضبط (رسائل الذكاء + عمليات البحث) وحماية من السبام (فاصل زمني + كشف الإغراق + إيقاف مؤقت).
+- 🛡 معالجة شاملة للأخطاء: مفاتيح خاطئة، رصيد منتهٍ، ضغط على الخدمة، انتهاء المهلة، ردود فارغة، وانقطاع الإنترنت — مع إعادة محاولة تلقائية، **دون أن يتوقف البوت**.
+- ✂️ تقسيم تلقائي للرسائل الطويلة (حد تيليجرام 4096 حرفاً).
+- 🪟 متوافق مع Windows و VS Code (ملفات `setup.bat` و `run.bat` و `.vscode`).
 
-## Data and testing
+---
 
-The bot may create or update a local SQLite database. Back it up before changing database code and avoid committing user conversations. No test files were visible at the repository root, so a working test command is not currently documented. Add tests for configuration validation, search-provider failures, message limits, and database isolation before production use.
+## المتطلبات
 
-## Deployment notes
+- **Python 3.10 أو أحدث** (مُختبر على 3.13) — حمّله من https://www.python.org/downloads/
+  (فعّل خيار **Add python.exe to PATH** أثناء التثبيت).
+- حساب تيليجرام، وحساب في OpenRouter، وحساب في SerpApi (الخطة المجانية تكفي للتجربة).
+- المكتبات (تُثبَّت تلقائياً من `requirements.txt`): `aiogram`, `aiohttp`, `python-dotenv`.
 
-Use a dedicated bot account, least-privilege credentials, provider rate limits, secure logs that omit tokens and private conversations, and a process manager appropriate to your host. This project is not a substitute for provider terms or content-safety controls.
+---
+
+## الحصول على المفاتيح
+
+| المفتاح | من أين؟ |
+|---|---|
+| `TELEGRAM_BOT_TOKEN` | تحدث مع [@BotFather](https://t.me/BotFather) ← `/newbot` ← انسخ التوكن |
+| `OPENROUTER_API_KEY` | https://openrouter.ai/keys (النموذج مدفوع، اشحن رصيداً صغيراً في حسابك) |
+| `SERPAPI_API_KEY` | https://serpapi.com/manage-api-key |
+| `OWNER_ID` | تحدث مع [@userinfobot](https://t.me/userinfobot) وانسخ رقم الـ **Id** |
+
+> ⚠️ لا تشارك هذه المفاتيح مع أحد، ولا ترفعها على GitHub. ملف `.env` مُستثنى تلقائياً في `.gitignore`.
+
+---
+
+## التثبيت على Windows مع VS Code
+
+### الطريقة السريعة (ملفات `.bat`)
+
+1. فك ضغط المشروع في مجلد، مثلاً `C:\Bots\infinitrix_search_bot`.
+2. انقر نقراً مزدوجاً على **`setup.bat`** — ينشئ بيئة افتراضية `.venv` ويثبّت المكتبات وينسخ `.env.example` إلى `.env`.
+3. افتح ملف **`.env`** واملأ المفاتيح (انظر القسم التالي).
+4. انقر نقراً مزدوجاً على **`run.bat`** لتشغيل البوت.
+
+### الطريقة اليدوية (VS Code)
+
+1. افتح VS Code ← **File → Open Folder** ← اختر مجلد المشروع.
+2. افتح الطرفية: **Terminal → New Terminal** (PowerShell).
+3. أنشئ البيئة الافتراضية وفعّلها:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+> إذا ظهر خطأ بخصوص سياسة التنفيذ (Execution Policy) نفّذ مرة واحدة:
+> `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` ثم أعد المحاولة.
+> أو استخدم **Command Prompt** و `.venv\Scripts\activate.bat`.
+
+4. ثبّت المكتبات:
+
+```powershell
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+5. انسخ ملف الإعدادات:
+
+```powershell
+copy .env.example .env
+```
+
+6. اختر مفسّر Python من البيئة الافتراضية في VS Code: **Ctrl+Shift+P** ← `Python: Select Interpreter` ← اختر `.venv`.
+
+---
+
+## إعداد ملف `.env`
+
+افتح `.env` واملأ على الأقل هذه القيم الأربع:
+
+```env
+TELEGRAM_BOT_TOKEN=123456789:AAxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+OPENROUTER_API_KEY=sk-or-v1-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+SERPAPI_API_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+OWNER_ID=123456789
+```
+
+باقي الإعدادات لها قيم افتراضية مناسبة، وأهمها:
+
+| الإعداد | الافتراضي | الوصف |
+|---|---|---|
+| `OPENROUTER_MODEL` | `cognitivecomputations/dolphin-mistral-24b-venice-edition` | النموذج المستخدم |
+| `DAILY_AI_LIMIT` | `50` | عدد رسائل الذكاء لكل مستخدم يومياً (`0` = بلا حد) |
+| `DAILY_SEARCH_LIMIT` | `30` | عدد عمليات البحث لكل مستخدم يومياً (`0` = بلا حد) |
+| `DAILY_RESET_UTC_OFFSET` | `3` | منتصف الليل لتجديد الحدود (3 = توقيت بغداد) |
+| `MIN_INTERVAL_SECONDS` | `1.5` | أقل فاصل بين طلبين من نفس المستخدم |
+| `BURST_MAX` / `BURST_WINDOW_SECONDS` | `8` / `20` | تجاوز 8 طلبات خلال 20 ثانية = إيقاف مؤقت |
+| `COOLDOWN_SECONDS` | `60` | مدة الإيقاف المؤقت |
+| `MAX_HISTORY_MESSAGES` | `20` | عدد رسائل الذاكرة المرسلة مع كل طلب |
+| `MAX_OUTPUT_TOKENS` | `2048` | أقصى طول لرد النموذج |
+| `TEMPERATURE` | `0.8` | درجة الإبداع (0 – 2) |
+| `SERPAPI_HL` / `SERPAPI_GL` | `en` / فارغ | لغة/دولة Google (مثلاً `ar` و `iq`) |
+| `IMAGE_HOST` | `litterbox` | طريقة رفع الصورة للبحث العكسي (انظر القسم الخاص) |
+
+**المالك (`OWNER_ID`)** غير خاضع للحدود اليومية ولا لحماية السبام، ويرى تفاصيل الأخطاء التقنية وإحصائيات إضافية في `/status`.
+
+> إذا تُرك `SERPAPI_API_KEY` فارغاً يعمل البوت كمحادثة ذكاء اصطناعي فقط، وتُعطّل أوامر البحث برسالة واضحة.
+
+---
+
+## تشغيل البوت
+
+- **Windows:** انقر على `run.bat`، أو من الطرفية بعد تفعيل البيئة:
+
+```powershell
+python bot.py
+```
+
+- **VS Code:** اضغط **F5** واختر `INFINITRIX SEARCH` (الإعداد جاهز في `.vscode/launch.json`).
+
+عند النجاح ستظهر رسالة مثل:
+
+```
+Starting INFINITRIX SEARCH as @your_bot | model=cognitivecomputations/... | owner=123456789 | search=on
+```
+
+افتح البوت في تيليجرام وأرسل `/start`. لإيقافه اضغط `Ctrl + C`.
+السجلات تُحفظ في `logs/bot.log` وقاعدة البيانات في `data/infinitrix.db`.
+
+> ملاحظة: شغّل **نسخة واحدة فقط** من البوت لكل توكن، وإلا سيظهر خطأ `Conflict: terminated by other getUpdates request`.
+
+---
+
+## الأوامر
+
+### لجميع المستخدمين
+
+| الأمر | الوظيفة |
+|---|---|
+| `/start` | رسالة الترحيب |
+| `/help` | دليل الأوامر |
+| `/ask سؤال` | إجابة مدعومة ببحث مباشر في الإنترنت |
+| `/autosearch on` / `off` | تفعيل/إيقاف البحث التلقائي مع كل رسالة عادية |
+| `/search كلمات` | بحث الويب |
+| `/images كلمات` | بحث صور Google (معاينة + روابط) |
+| `/videos كلمات` | بحث الفيديوهات |
+| `/news كلمات` | بحث الأخبار |
+| `/reverse` | بحث عكسي بالصورة (انظر أدناه) |
+| `/clear` | مسح ذاكرة محادثتك |
+| `/status` | النموذج + استخدامك اليوم + حجم ذاكرتك |
+
+أي رسالة عادية في **المحادثة الخاصة** تُعامل كمحادثة مع الذكاء الاصطناعي. في المجموعات يستجيب البوت للأوامر فقط.
+
+### للمالك فقط
+
+| الأمر | الوظيفة |
+|---|---|
+| `/setprompt نص` | تعيين System Prompt جديد |
+| `/showprompt` | عرض البرومبت الحالي |
+| `/resetprompt` | الرجوع للبرومبت الافتراضي |
+
+---
+
+## إدارة الـ System Prompt
+
+1. **تعيين برومبت:**
+
+```
+/setprompt أنت مساعد خبير في البرمجة، تجيب بإيجاز وبأمثلة عملية دائماً.
+```
+
+   وللنصوص الطويلة أو متعددة الأسطر: أرسل النص في رسالة عادية، ثم **ردّ عليها** بـ `/setprompt`.
+2. **عرض الحالي:** `/showprompt` (يوضح هل هو مخصص أم افتراضي).
+3. **العودة للافتراضي:** `/resetprompt`.
+
+الخصائص:
+
+- الأوامر الثلاثة تعمل فقط لحساب `OWNER_ID`؛ غيره يتلقى رسالة رفض.
+- البرومبت المخصص محفوظ في جدول `settings` داخل SQLite، **ويبقى بعد إعادة تشغيل البوت**.
+- يُرسل البرومبت كرسالة `system` في **كل** طلب إلى OpenRouter. (يُضاف بعده سطر التاريخ الحالي؛ عطّله بـ `APPEND_DATE_TO_PROMPT=false`.)
+- الحد الأقصى لطول البرومبت `MAX_PROMPT_LENGTH` (الافتراضي 4000 حرف).
+- البرومبت الافتراضي موجود في `config.py` (`DEFAULT_SYSTEM_PROMPT`) ويمكنك تعديله مباشرة.
+
+> الرفض يعتمد أيضاً على النموذج نفسه ومزوّد الخدمة عبر OpenRouter، فالبرومبت يوجّه السلوك لكنه لا يضمن غياب أي رفض.
+
+---
+
+## حدود الاستخدام وحماية السبام
+
+- **حدود يومية** لكل مستخدم: رسائل الذكاء (`DAILY_AI_LIMIT`) وعمليات البحث (`DAILY_SEARCH_LIMIT`)، وتتجدد تلقائياً عند منتصف الليل حسب `DAILY_RESET_UTC_OFFSET`.
+- **لا تُحسب الطلبات الفاشلة:** إذا فشل الذكاء أو البحث (خطأ API مثلاً) يُعاد خصم الاستخدام تلقائياً.
+- **فاصل زمني:** الرسائل الأسرع من `MIN_INTERVAL_SECONDS` تُتجاهل بصمت (حتى لا يردّ البوت على كل ضغطة).
+- **كشف الإغراق:** تجاوز `BURST_MAX` طلبات خلال `BURST_WINDOW_SECONDS` يوقف المستخدم `COOLDOWN_SECONDS` مع رسالة تنبيه واحدة.
+- **طلب واحد في كل مرة** لكل مستخدم: إذا أرسل رسالة والبوت ما زال يجيب على السابقة يُطلب منه الانتظار.
+- حدّ طول الرسالة المدخلة `MAX_INPUT_CHARS`.
+
+---
+
+## البحث العكسي بالصورة
+
+يحتاج SerpApi إلى **رابط عام** للصورة، لذلك لديك ثلاث طرق:
+
+1. أرسل صورة مع التعليق `/reverse`.
+2. ردّ على صورة موجودة بالأمر `/reverse`.
+3. `/reverse https://example.com/image.jpg` برابط صورة مباشر.
+
+بالنسبة للصور القادمة من تيليجرام يوجد خياران عبر `IMAGE_HOST` في `.env`:
+
+- `litterbox` (الافتراضي): يرفع البوت الصورة مؤقتاً إلى خدمة `litterbox.catbox.moe` وتُحذف تلقائياً بعد **ساعة**. هذا **لا يكشف توكن البوت**، لكن الصورة تمر عبر خدمة خارجية.
+- `telegram`: يستخدم رابط ملف تيليجرام مباشرة. ⚠️ هذا الرابط **يحتوي توكن البوت** ويُرسل إلى SerpApi؛ لا تستخدمه إلا إذا قبلت هذه المخاطرة (ويمكنك تجديد التوكن من BotFather عند الحاجة).
+
+لا ترسل صوراً خاصة أو حساسة للبحث العكسي؛ فهي تُرسل إلى خدمات خارجية (الاستضافة المؤقتة + SerpApi/Google).
+
+---
+
+## هيكل المشروع
+
+```
+infinitrix_search_bot/
+├── bot.py            # نقطة التشغيل (python bot.py)
+├── handlers.py       # أوامر تيليجرام (aiogram 3)
+├── core.py           # المنطق: الذاكرة، الحدود، السبام، البرومبت، البحث
+├── ai_client.py      # عميل OpenRouter (تحقق من الأخطاء + إعادة المحاولة)
+├── search.py         # عميل SerpApi (ويب/صور/فيديو/أخبار/بحث عكسي)
+├── database.py       # SQLite (ذاكرة، إعدادات، استخدام، تفضيلات)
+├── utils.py          # تقسيم الرسائل + حماية السبام + التاريخ
+├── config.py         # قراءة .env والبرومبت الافتراضي
+├── tests/            # اختبارات الوحدة
+├── .env.example      # نموذج الإعدادات
+├── requirements.txt
+├── .gitignore
+├── setup.bat         # تثبيت تلقائي على Windows
+├── run.bat           # تشغيل على Windows
+└── .vscode/          # إعدادات VS Code (F5 للتشغيل)
+```
+
+---
+
+## الاختبارات
+
+تغطي الاختبارات: تقسيم الرسائل، الحماية من السبام، قاعدة البيانات (ذاكرة منفصلة، استمرار البرومبت بعد إعادة التشغيل، الحدود اليومية، الذرّية)، عميل OpenRouter (النجاح، 401، 402، 429 مع إعادة المحاولة، المهلة، الردود الفارغة)، عميل SerpApi (كل محرك، لا نتائج، الأخطاء، الرد العكسي)، ومنطق البوت (صلاحيات المالك، حقن نتائج البحث، رد الاستخدام عند الفشل).
+
+```powershell
+python -m unittest discover -s . -p "test_*.py" -t . -v
+```
+
+أو في VS Code: **F5** ← `Run tests`.
+
+---
+
+## استكشاف الأخطاء
+
+| المشكلة | الحل |
+|---|---|
+| `[CONFIG ERROR] Missing required settings` | املأ `TELEGRAM_BOT_TOKEN` و `OPENROUTER_API_KEY` و `OWNER_ID` في `.env` |
+| `TELEGRAM_BOT_TOKEN is invalid` | انسخ التوكن من BotFather من جديد بلا مسافات |
+| `Conflict: terminated by other getUpdates request` | هناك نسخة أخرى من البوت تعمل بنفس التوكن؛ أوقفها |
+| البوت يقول إن الخدمة غير متاحة (للمالك تظهر التفاصيل) | غالباً مفتاح OpenRouter خاطئ (401) أو الرصيد نفد (402) |
+| `البحث غير مفعّل` | ضع `SERPAPI_API_KEY` في `.env` وأعد التشغيل |
+| `pip` أو `python` غير معروف | أعد تثبيت Python مع تفعيل **Add to PATH** |
+| ظهور أحرف غريبة في الطرفية | شغّل عبر `run.bat` (يضبط UTF-8) أو نفّذ `set PYTHONUTF8=1` |
+| لا تظهر أوامر `/setprompt` في القائمة | افتح البوت وأرسل `/start` من حساب المالك ثم أعد تشغيل البوت (الأوامر تعمل حتى لو لم تظهر) |
+| معاينة الصور لا تظهر في `/images` | بعض الروابط يرفضها تيليجرام؛ تبقى الروابط النصية متاحة |
+
+لمزيد من التفاصيل راجع `logs/bot.log` (ويمكنك رفع المستوى بـ `LOG_LEVEL=DEBUG`).
+
+---
+
+## الأمان
+
+- جميع المفاتيح في `.env` فقط، ولا يوجد أي مفتاح داخل الكود. لا ترفع `.env` ولا `data/` ولا `logs/`.
+- رسائل الأخطاء التقنية (مثل تفاصيل OpenRouter) تظهر **للمالك فقط**؛ المستخدمون يرون رسائل عامة.
+- النصوص القادمة من نتائج البحث تُهرَّب (HTML escape) قبل إرسالها لتيليجرام.
+- تُخزَّن محادثات المستخدمين في قاعدة البيانات المحلية؛ احمِ ملف `data/infinitrix.db` ومجلد المشروع، وأخبر مستخدميك بذلك. يستطيع كل مستخدم حذف ذاكرته بـ `/clear`.
+- أنت مسؤول عن الاستخدام وفق شروط تيليجرام وOpenRouter وSerpApi والقوانين في بلدك. البرومبت الافتراضي يرفض فقط الطلبات التي تضر الآخرين بشكل جدي.
+
+---
+
+## التشغيل على Linux / خادم
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env && nano .env
+python bot.py
+```
+
+وللتشغيل الدائم يمكن استخدام `systemd` أو `tmux`/`screen` أو Docker.
+
+---
+
+**INFINITRIX SEARCH** — بالتوفيق! 🚀
